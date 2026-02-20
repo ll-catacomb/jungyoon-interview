@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Keypress Recorder</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      background: #000;
+      color: #ccc;
+      min-height: 100vh;
+      padding: 1rem;
+    }
+
+    #flash {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      font-size: 5rem;
+      color: #fff;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+      pointer-events: none;
+    }
+
+    #flash.visible {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div id="flash"></div>
+
+  <script src="config.js"></script>
+  <script>
+
+    const TRACKED_KEYS = {
+      '1': { note: 'personal',       category: 'content',     display: '🧑' },
+      '2': { note: 'environmental',  category: 'content',     display: '&#x1F30D;' },
+      '3': { note: 'informational',  category: 'content',     display: '💻' },
+      '4': { note: 'future',         category: 'content',     display: '🚀' },
+      ' ': { note: 'interesting',    category: 'interesting',  display: '❗' },
+      'ArrowLeft':  { note: 'bok',       category: 'context', display: 'Bok' },
+      'ArrowRight': { note: 'research',  category: 'context', display: 'Research' },
+    };
+
+    async function sendToAirtable(note, category, timecode) {
+      const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_TABLE_NAME)}`;
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${AIRTABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            fields: {
+              note: [note],
+              category: category,
+              timecode: timecode,
+            },
+          }),
+        });
+        if (!res.ok) console.error('Airtable error:', await res.text());
+      } catch (err) {
+        console.error('Airtable request failed:', err);
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      const entry = TRACKED_KEYS[e.key];
+      if (!entry) return;
+      e.preventDefault();
+      const now = new Date();
+      sendToAirtable(entry.note, entry.category, now.toISOString());
+      showFlash(entry.display);
+    });
+
+    let flashTimeout;
+    const flash = document.getElementById('flash');
+
+    function showFlash(text) {
+      clearTimeout(flashTimeout);
+      flash.innerHTML = text;
+      flash.classList.add('visible');
+      flashTimeout = setTimeout(() => flash.classList.remove('visible'), 500);
+    }
+  </script>
+</body>
+</html>
