@@ -62,7 +62,7 @@
             fields: {
               note: [note],
               category: category,
-              timecode: timecode,
+              timecode: timecode.toISOString(),
             },
           }),
         });
@@ -77,7 +77,7 @@
       if (!entry) return;
       e.preventDefault();
       const now = new Date();
-      sendToAirtable(entry.note, entry.category, now.toISOString());
+      sendToAirtable(entry.note, entry.category, now);
       showFlash(entry.display);
     });
 
